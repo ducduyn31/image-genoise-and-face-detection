@@ -21,3 +21,23 @@ sudo bash ~/ec2-user/anaconda.sh -b -p /home/anaconda3
 rm ~/ec2-user/anaconda.sh
 echo "export PATH=/home/anaconda3/bin:$PATH" | sudo tee -a /etc/profile.d/anaconda.sh
 echo "source /home/anaconda3/bin/activate" | sudo tee -a /etc/profile.d/anaconda.sh
+
+# Setup Jupyter notebook
+mkdir -p /home/ec2-user/projects
+
+echo "[Unit]
+Description=Jupyter Notebook Server
+
+[Service]
+User=ec2-user
+Group=ec2-user
+ExecStart=/home/anaconda3/bin/jupyter-notebook --ip=0.0.0.0 --no-browser
+WorkingDirectory=/home/ec2-user/projects
+Restart=always
+
+[Install]
+WantedBy=multi-user.target" | sudo tee /etc/systemd/system/jupyter.service
+
+# Enable and start the Jupyter service
+sudo systemctl enable jupyter.service
+sudo systemctl start jupyter.service
