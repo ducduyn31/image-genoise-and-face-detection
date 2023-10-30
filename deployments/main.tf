@@ -39,23 +39,13 @@ resource "aws_instance" "dev_server" {
     Name = "Remote Dev Server"
   }
 
+  root_block_device {
+    volume_size = 30
+    volume_type = "gp2"
+  }
+
   key_name               = aws_key_pair.dev_key.key_name
   vpc_security_group_ids = [aws_security_group.dev_sg.id]
   subnet_id              = aws_subnet.dev_server.id
   user_data              = file("scripts/startup.sh")
 }
-
-resource "aws_ebs_volume" "dev_volume" {
-  availability_zone = aws_instance.dev_server.availability_zone
-  size              = 30
-  tags = {
-    Name = "Remote Dev Volume"
-  }
-}
-
-resource "aws_volume_attachment" "dev_volume_attachment" {
-  device_name = "/dev/sdf"
-  volume_id   = aws_ebs_volume.dev_volume.id
-  instance_id = aws_instance.dev_server.id
-}
-
