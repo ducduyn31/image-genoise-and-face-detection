@@ -17,7 +17,7 @@
 
 # Download latest anaconda
 wget https://repo.anaconda.com/archive/Anaconda3-2023.09-0-Linux-x86_64.sh -O /home/ec2-user/anaconda.sh
-bash ~/ec2-user/anaconda.sh -b -p /home/anaconda3
+sudo bash ~/ec2-user/anaconda.sh -b -p /home/anaconda3
 rm ~/ec2-user/anaconda.sh
 echo "export PATH=/home/anaconda3/bin:$PATH" | sudo tee -a /etc/profile.d/anaconda.sh
 echo "source /home/anaconda3/bin/activate" | sudo tee -a /etc/profile.d/anaconda.sh
