@@ -34,7 +34,7 @@ resource "aws_security_group" "dev_sg" {
 
 resource "aws_instance" "dev_server" {
   ami           = "ami-09b402d0a0d6b112b"
-  instance_type = "t2.micro"
+  instance_type = "t2.xlarge"
   tags = {
     Name = "Remote Dev Server"
   }
