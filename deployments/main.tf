@@ -10,12 +10,21 @@ resource "aws_key_pair" "dev_key" {
 
 resource "aws_security_group" "dev_sg" {
   name        = "dev_sg"
-  description = "Allow SSH and HTTP"
+  description = "Allow SSH and Jupyter Notebook access"
   vpc_id      = aws_vpc.dev_server.id
 
   ingress {
     from_port = 22
     to_port   = 22
+    protocol  = "tcp"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+  ingress {
+    from_port = 8888
+    to_port   = 8888
     protocol  = "tcp"
     cidr_blocks = [
       "0.0.0.0/0"
