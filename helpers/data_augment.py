@@ -98,6 +98,6 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
             for bbox in bboxes["bbox"]:
                 # Convert tensor to x y h w
                 bbox = bbox.tolist()
-                f.write(' '.join([str(x) for x in bbox]))
+                f.write(' '.join([str(x) for x in bbox]) + '\n')
 
     return origin_dataset[0]
