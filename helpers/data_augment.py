@@ -78,7 +78,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
         img.save(f'{stored_location}/AUG_WIDER_{split}/images/{img_prefix}/{img_name}', 'jpeg')
         temp[img_name] = bboxes
 
-        for j in range(8):
+        for j in range(3):
             aug_img, aug_bboxes = transform_origin_image(img, bboxes)
             if not isinstance(aug_img, PIL.Image.Image):
                 aug_img = v2.ToPILImage()(aug_img)
@@ -94,7 +94,10 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
         for fname, bboxes in temp.items():
             f.write(fname + '\n')
             f.write(str(len(bboxes)) + '\n')
-            for bbox in bboxes:
-                f.write(' '.join([str(x) for x in bbox]) + ' 0\n')
+            bboxes = v2.ConvertBoundingBoxFormat('CXCYWH')(bboxes)
+            for bbox in bboxes["bbox"]:
+                # Convert tensor to x y h w
+                bbox = bbox.tolist()
+                f.write(' '.join([str(x) for x in bbox]))
 
     return origin_dataset[0]
