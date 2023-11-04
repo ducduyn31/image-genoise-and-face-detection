@@ -87,10 +87,10 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
             temp[f'{img_prefix}/{raw_img_name}_aug_{j}.jpg'] = aug_bboxes
 
     # Store the labels
-    if not os.path.exists(f'{stored_location}/AUG_wider_face_{split}'):
-        os.makedirs(f'{stored_location}/AUG_wider_face_{split}')
+    if not os.path.exists(f'{stored_location}/AUG_wider_face_split'):
+        os.makedirs(f'{stored_location}/AUG_wider_face_split')
 
-    with open(f'{stored_location}/AUG_wider_face_{split}/aug_wider_face_{split}_bbx_gt.txt', 'w') as f:
+    with open(f'{stored_location}/AUG_wider_face_split/aug_wider_face_{split}_bbx_gt.txt', 'w') as f:
         for fname, bboxes in temp.items():
             f.write(fname + '\n')
             f.write(str(len(bboxes["bbox"])) + '\n')
