@@ -14,27 +14,27 @@ resource "aws_security_group" "dev_sg" {
   vpc_id      = aws_vpc.dev_server.id
 
   ingress {
-    from_port = 22
-    to_port   = 22
-    protocol  = "tcp"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
     cidr_blocks = [
       "0.0.0.0/0"
     ]
   }
 
   ingress {
-    from_port = 8888
-    to_port   = 8888
-    protocol  = "tcp"
+    from_port   = 8888
+    to_port     = 8898
+    protocol    = "tcp"
     cidr_blocks = [
       "0.0.0.0/0"
     ]
   }
 
   egress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = [
       "0.0.0.0/0"
     ]
@@ -44,17 +44,24 @@ resource "aws_security_group" "dev_sg" {
 resource "aws_instance" "dev_server" {
   ami           = "ami-09b402d0a0d6b112b"
   instance_type = "t2.xlarge"
-  tags = {
+  tags          = {
     Name = "Remote Dev Server"
-  }
-
-  root_block_device {
-    volume_size = 30
-    volume_type = "gp2"
   }
 
   key_name               = aws_key_pair.dev_key.key_name
   vpc_security_group_ids = [aws_security_group.dev_sg.id]
   subnet_id              = aws_subnet.dev_server.id
   user_data              = file("scripts/startup.sh")
+}
+
+resource "aws_ebs_volume" "dev_server" {
+  availability_zone = aws_instance.dev_server.availability_zone
+  size              = 30
+  type              = "gp2"
+}
+
+resource "aws_volume_attachment" "dev_server" {
+  device_name = "/dev/sdb"
+  volume_id   = aws_ebs_volume.dev_server.id
+  instance_id = aws_instance.dev_server.id
 }
