@@ -93,7 +93,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
     with open(f'{stored_location}/AUG_wider_face_{split}/aug_wider_face_{split}_bbx_gt.txt', 'w') as f:
         for fname, bboxes in temp.items():
             f.write(fname + '\n')
-            f.write(str(len(bboxes)) + '\n')
+            f.write(str(len(bboxes["bbox"])) + '\n')
             bboxes = v2.ConvertBoundingBoxFormat('CXCYWH')(bboxes)
             for bbox in bboxes["bbox"]:
                 # Convert tensor to x y h w
