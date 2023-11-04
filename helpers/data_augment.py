@@ -78,7 +78,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
         img.save(f'{stored_location}/AUG_WIDER_{split}/images/{img_prefix}/{img_name}', 'jpeg')
         temp[img_name] = bboxes
 
-        for j in range(3):
+        for j in range(8):
             aug_img, aug_bboxes = transform_origin_image(img, bboxes)
             if not isinstance(aug_img, PIL.Image.Image):
                 aug_img = v2.ToPILImage()(aug_img)
