@@ -76,7 +76,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
 
         # Store the original image
         img.save(f'{stored_location}/AUG_WIDER_{split}/images/{img_prefix}/{img_name}', 'jpeg')
-        temp[img_name] = bboxes
+        temp[f'{img_prefix}/{img_name}'] = bboxes
 
         for j in range(3):
             aug_img, aug_bboxes = transform_origin_image(img, bboxes)
@@ -84,7 +84,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
                 aug_img = v2.ToPILImage()(aug_img)
 
             aug_img.save(f'{stored_location}/AUG_WIDER_{split}/images/{img_prefix}/{raw_img_name}_aug_{j}.jpg', 'jpeg')
-            temp[f'{raw_img_name}_aug_{j}.jpg'] = aug_bboxes
+            temp[f'{img_prefix}/{raw_img_name}_aug_{j}.jpg'] = aug_bboxes
 
     # Store the labels
     if not os.path.exists(f'{stored_location}/AUG_wider_face_{split}'):
