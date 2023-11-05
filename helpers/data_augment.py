@@ -5,6 +5,7 @@ from typing import List
 import PIL.Image
 from torchvision import datasets, utils
 from torchvision.transforms import v2
+from torchvision.tv_tensors import BoundingBoxFormat
 from tqdm import trange
 
 from custom_transform.glare import Glare
@@ -94,7 +95,7 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
         for fname, bboxes in temp.items():
             f.write(fname + '\n')
             f.write(str(len(bboxes["bbox"])) + '\n')
-            bboxes = v2.ConvertBoundingBoxFormat('CXCYWH')(bboxes)
+            bboxes = v2.ConvertBoundingBoxFormat(format=BoundingBoxFormat.XYWH)(bboxes)
             for bbox in bboxes["bbox"]:
                 # Convert tensor to x y h w
                 bbox = bbox.tolist()
