@@ -2,7 +2,7 @@ import os
 from typing import Optional, Callable, Dict, Union, List
 import torch
 
-from os.path import aspath, expanduser
+from os.path import abspath, expanduser
 
 from PIL.Image import Image
 from torchvision.datasets import VisionDataset
@@ -69,7 +69,7 @@ class AugmentedDataset(VisionDataset):
                 line = line.rstrip()
                 if file_name_line:
                     img_path = os.path.join(self.root, "AUG_WIDER_" + self.split, "images", line)
-                    img_path = aspath(expanduser(img_path))
+                    img_path = abspath(expanduser(img_path))
                     file_name_line, num_boxes_line = False, True
                 elif num_boxes_line:
                     num_boxes = int(line)
@@ -91,11 +91,11 @@ class AugmentedDataset(VisionDataset):
 
     def parse_test_annotations_file(self) -> None:
         filepath = os.path.join(self.root, "AUG_wider_face_split", "aug_wider_face_test_filelist.txt")
-        filepath = aspath(expanduser(filepath))
+        filepath = abspath(expanduser(filepath))
         with open(filepath) as f:
             lines = f.readlines()
             for line in lines:
                 line = line.rstrip()
                 img_path = os.path.join(self.root, "AUG_WIDER_test", "images", line)
-                img_path = aspath(expanduser(img_path))
+                img_path = abspath(expanduser(img_path))
                 self.img_info.append({"img_path": img_path})
