@@ -56,7 +56,7 @@ class SRDataset(VisionDataset):
 
     def prepare_lq_image(self):
         # Load the file list
-        filelist_path = os.path.join(self.root, self.FILELISTS[self.split])
+        filelist_path = os.path.join(self.root, 'AUG_wider_face_split', self.FILELISTS[self.split])
         with open(filelist_path, 'r') as f:
             filelist = f.readlines()
 
