@@ -1,9 +1,10 @@
 import os
+from os.path import relpath, join as join_path
 from random import sample
 from typing import List
 
 import PIL.Image
-from torchvision import datasets, utils
+from torchvision import datasets
 from torchvision.transforms import v2
 from torchvision.tv_tensors import BoundingBoxFormat
 from tqdm import trange
@@ -102,3 +103,25 @@ def prepare_augmented_dataset(origin_dataset: datasets.WIDERFace, stored_locatio
                 f.write(' '.join([str(x) for x in bbox]) + '\n')
 
     return origin_dataset[0]
+
+
+def generate_img_filelist_txt(folder: str, destination: str):
+    if not os.path.exists(folder):
+        raise FileNotFoundError(f'{folder} does not exist')
+
+    # Check destination parent folder exists
+    if not os.path.exists(os.path.dirname(destination)):
+        os.makedirs(os.path.dirname(destination))
+
+    # Read all images in folder
+    img_list = []
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if file.endswith('.jpg'):
+                # Append the difference between folder path and file path
+                img_list.append(relpath(join_path(root, file), folder))
+
+    # Write to destination
+    with open(destination, 'w') as f:
+        for img in img_list:
+            f.write(img + '\n')

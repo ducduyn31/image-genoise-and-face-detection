@@ -1,8 +1,14 @@
+from typing import Any, Dict
+
+import lpips
+import pytorch_lightning as pl
 import torch
 import torch.nn.functional as F
+from pytorch_lightning.utilities.types import STEP_OUTPUT, OptimizerLRScheduler
 from timm.layers import trunc_normal_
-from torch import nn
+from torch import nn, optim
 
+from models.mixins import ImageLoggerMixin
 from models.patch_embed import PatchEmbed
 from models.patch_unembed import PatchUnembed
 from models.rstb import ResidualSwinTransformerBlock
@@ -10,7 +16,7 @@ from models.upsample import Upsample
 from models.upsample_one_step import UpsampleOneStep
 
 
-class SwinIR(nn.Module):
+class SwinIR(pl.LightningModule, ImageLoggerMixin):
 
     def __init__(self, img_size=64, patch_size=1, in_chans=3,
                  embed_dim=96, depths=[6, 6, 6, 6], num_heads=[6, 6, 6, 6],
@@ -124,12 +130,17 @@ class SwinIR(nn.Module):
             self.conv_up1 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
             if self.upscale == 4:
                 self.conv_up2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+            elif self.upscale == 8:
+                self.conv_up2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
+                self.conv_up3 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
             self.conv_hr = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
             self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
             self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
         else:
             # for image denoising and JPEG compression artifact reduction
             self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
+
+        self.lpips_metric = lpips.LPIPS(net='alex')
 
         self.apply(self._init_weights)
 
@@ -198,6 +209,9 @@ class SwinIR(nn.Module):
             x = self.lrelu(self.conv_up1(F.interpolate(x, scale_factor=2, mode='nearest')))
             if self.upscale == 4:
                 x = self.lrelu(self.conv_up2(F.interpolate(x, scale_factor=2, mode='nearest')))
+            elif self.upscale == 8:
+                x = self.lrelu(self.conv_up2(F.interpolate(x, scale_factor=2, mode='nearest')))
+                x = self.lrelu(self.conv_up3(F.interpolate(x, scale_factor=2, mode='nearest')))
             x = self.conv_last(self.lrelu(self.conv_hr(x)))
         else:
             # for image denoising and JPEG compression artifact reduction
@@ -219,6 +233,48 @@ class SwinIR(nn.Module):
         flops += H * W * 3 * self.embed_dim * self.embed_dim
         flops += self.upsample.flops()
         return flops
+
+    def get_loss(self, pred, label):
+        return F.mse_loss(input=pred, target=label, reduction='mean')
+
+    def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+        hq, lq = batch['hq'], batch['lq']
+        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
+        lq = lq.permute(0, 3, 1, 2)
+        pred = self(lq)
+        loss = self.get_loss(pred, hq)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def on_validation_start(self) -> None:
+        self.lpips_metric.to(self.device)
+
+    def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
+        hq, lq = batch['hq'], batch['lq']
+        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
+        lq = lq.permute(0, 3, 1, 2)
+        pred = self(lq)
+
+        perception_sim = self.lpips_metric(pred, hq, normalize=True).mean()
+        self.log('val_lpips', perception_sim, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        loss = self.get_loss(pred, hq)
+        self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+    def configure_optimizers(self) -> OptimizerLRScheduler:
+        return optim.AdamW(
+            [p for p in self.parameters() if p.requires_grad],
+            lr=1e-4,
+            weight_decay=0,
+        )
+
+    @torch.no_grad()
+    def log_images(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        hq, lq = batch['hq'], batch['lq']
+        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
+        lq = lq.permute(0, 3, 1, 2)
+        pred = self(lq)
+        return dict(lq=lq, pred=pred, hq=hq)
 
 
 if __name__ == '__main__':
