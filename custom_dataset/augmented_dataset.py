@@ -1,12 +1,14 @@
 import os
-from typing import Optional, Callable, Dict, Union, List
-import torch
-
 from os.path import abspath, expanduser
+from typing import Optional, Callable, Dict, Union, List
 
-from PIL.Image import Image
+import torch
+from PIL import Image
+from torchvision import tv_tensors
 from torchvision.datasets import VisionDataset
 from torchvision.datasets.utils import verify_str_arg
+from torchvision.transforms.v2 import functional as F
+from torchvision.tv_tensors._dataset_wrapper import WRAPPER_FACTORIES
 
 
 class AugmentedDataset(VisionDataset):
@@ -82,8 +84,15 @@ class AugmentedDataset(VisionDataset):
                     if box_counter >= num_boxes:
                         box_annotation_line, file_name_line = False, True
                         labels_tensor = torch.tensor(labels)
+                        cloned_bbox = labels_tensor[:, :4].clone()
                         self.img_info.append(
-                            {"img_path": img_path, "annotations": {"bbox": labels_tensor[: 0:4].clone()}})
+                            {
+                                "img_path": img_path,
+                                "annotations": {
+                                    "bbox": cloned_bbox,
+                                }
+                            }
+                        )
                         box_counter = 0
                         labels.clear()
                 else:
@@ -99,3 +108,48 @@ class AugmentedDataset(VisionDataset):
                 img_path = os.path.join(self.root, "AUG_WIDER_test", "images", line)
                 img_path = abspath(expanduser(img_path))
                 self.img_info.append({"img_path": img_path})
+
+
+def parse_target_keys(target_keys, *, available, default):
+    if target_keys is None:
+        target_keys = default
+    if target_keys == "all":
+        target_keys = available
+    else:
+        target_keys = set(target_keys)
+        extra = target_keys - available
+        if extra:
+            raise ValueError(f"Target keys {sorted(extra)} are not available")
+
+    return target_keys
+
+
+@WRAPPER_FACTORIES.register(AugmentedDataset)
+def ds_wrapper(dataset, target_keys):
+    target_keys = parse_target_keys(
+        target_keys,
+        available={
+            "bbox",
+        },
+        default="all",
+    )
+
+    def wrapper(idx, sample):
+        image, target = sample
+
+        if target is None:
+            return image, target
+
+        target = {key: target[key] for key in target_keys}
+
+        if "bbox" in target_keys:
+            target["bbox"] = F.convert_bounding_box_format(
+                tv_tensors.BoundingBoxes(
+                    target["bbox"], format=tv_tensors.BoundingBoxFormat.XYWH, canvas_size=(image.height, image.width)
+                ),
+                new_format=tv_tensors.BoundingBoxFormat.XYXY,
+            )
+
+        return image, target
+
+    return wrapper
