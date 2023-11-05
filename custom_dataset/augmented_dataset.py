@@ -27,7 +27,7 @@ class AugmentedDataset(VisionDataset):
         self.split = verify_str_arg(split, "split", ("train", "val", "test"))
 
         if not self._check_integrity():
-            raise RuntimeError("Dataset not found or corrupted. You can use download=True to download and prepare it")
+            raise RuntimeError("Dataset not found or corrupted.")
 
         self.img_info: List[Dict[str, Union[str, Dict[str, torch.Tensor]]]] = []
         if self.split in ("train", "val"):
