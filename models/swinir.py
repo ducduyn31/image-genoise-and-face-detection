@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import lpips
 import pytorch_lightning as pl
@@ -8,6 +8,7 @@ from pytorch_lightning.utilities.types import STEP_OUTPUT, OptimizerLRScheduler
 from timm.layers import trunc_normal_
 from torch import nn, optim
 
+from helpers.metrics import calculate_psnr_pt
 from models.mixins import ImageLoggerMixin
 from models.patch_embed import PatchEmbed
 from models.patch_unembed import PatchUnembed
@@ -239,8 +240,7 @@ class SwinIR(pl.LightningModule, ImageLoggerMixin):
 
     def training_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         hq, lq = batch['hq'], batch['lq']
-        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
-        lq = lq.permute(0, 3, 1, 2)
+        hq = ((hq + 1) / 2).clamp_(0, 1)
         pred = self(lq)
         loss = self.get_loss(pred, hq)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -251,12 +251,14 @@ class SwinIR(pl.LightningModule, ImageLoggerMixin):
 
     def validation_step(self, batch: Dict[str, torch.Tensor], batch_idx: int) -> STEP_OUTPUT:
         hq, lq = batch['hq'], batch['lq']
-        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
-        lq = lq.permute(0, 3, 1, 2)
+        hq = ((hq + 1) / 2).clamp_(0, 1)
         pred = self(lq)
 
-        perception_sim = self.lpips_metric(pred, hq, normalize=True).mean()
-        self.log('val_lpips', perception_sim, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        perceptual_sim = self.lpips_metric(pred, hq, normalize=True).mean()
+        self.log('val_lpips', perceptual_sim, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+
+        psnr = calculate_psnr_pt(pred, hq, crop_border=0)
+        self.log('val_psnr', psnr, on_step=True, on_epoch=True, prog_bar=True, logger=True)
 
         loss = self.get_loss(pred, hq)
         self.log('val_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
@@ -271,8 +273,7 @@ class SwinIR(pl.LightningModule, ImageLoggerMixin):
     @torch.no_grad()
     def log_images(self, batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         hq, lq = batch['hq'], batch['lq']
-        hq = ((hq + 1) / 2).clamp_(0, 1).permute(0, 3, 1, 2)
-        lq = lq.permute(0, 3, 1, 2)
+        hq = ((hq + 1) / 2).clamp_(0, 1)
         pred = self(lq)
         return dict(lq=lq, pred=pred, hq=hq)
 

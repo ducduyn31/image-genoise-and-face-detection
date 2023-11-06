@@ -37,22 +37,29 @@ class SRDataset(VisionDataset):
         pil_image = Image.open(sample_path['lq'])
         w, h = pil_image.size
         # Downsample the image
-        scale = (0.8 - 8) * torch.rand() + 8
+        scale = (0.8 - 8) * torch.rand(1) + 8
         pil_image = pil_image.resize((int(w // scale), int(h // scale)), resample=Image.BILINEAR)
 
         # Add Gaussian noise
         tv_img = tv_tensors.Image(pil_image)
-        tv_img = v2.GaussianBlur(kernel_size=3, sigma=(0, 20))(tv_img)
+        tv_img = v2.GaussianBlur(kernel_size=3, sigma=(0.1, 20))(tv_img)
 
         # Rescale the image
         pil_image = v2.ToPILImage()(tv_img)
         pil_image = pil_image.resize((w, h), resample=Image.BILINEAR)
 
-        return dict(
-            lq=pil_image,
-            hq=hq_image,
-            scale=scale,
-        )
+        # Convert to tv
+        lq_image = tv_tensors.Image(pil_image)
+        hq_image = tv_tensors.Image(hq_image)
+
+        return {
+            'lq': lq_image,
+            'hq': hq_image,
+            'scale': scale,
+        }
+
+    def __len__(self):
+        return len(self.img_info)
 
     def prepare_lq_image(self):
         # Load the file list
