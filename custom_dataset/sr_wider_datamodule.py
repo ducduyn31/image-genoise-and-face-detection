@@ -46,7 +46,7 @@ class SRWiderfaceDataModule(pl.LightningDataModule):
             collate_fn=self.collate_fn,
             batch_size=16,
             shuffle=True,
-            num_workers=16,
+            num_workers=2,
             drop_last=True,
         )
 
@@ -56,6 +56,6 @@ class SRWiderfaceDataModule(pl.LightningDataModule):
             collate_fn=self.collate_fn,
             batch_size=16,
             shuffle=False,
-            num_workers=16,
+            num_workers=2,
             drop_last=True,
         )

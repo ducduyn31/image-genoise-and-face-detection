@@ -186,7 +186,7 @@ class SwinIR(pl.LightningModule, ImageLoggerMixin):
 
     def forward(self, x):
         H, W = x.shape[2:]
-        self.check_image_size(x)
+        x = self.check_image_size(x)
 
         self.mean = self.mean.type_as(x)
         x = (x - self.mean) * self.img_range

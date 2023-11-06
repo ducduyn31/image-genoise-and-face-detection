@@ -41,6 +41,7 @@ def train_id_model():
         accelerator='auto',
         precision=32,
         default_root_dir=ROOT / 'logs',
+        #devices='auto',
         devices='auto',
         max_steps=150001,
         val_check_interval=500,
